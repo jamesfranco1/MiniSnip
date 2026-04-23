@@ -1,16 +1,8 @@
-# MiniSnip (clipboard-only fork)
 
-A stripped-down fork of [deminimis/MiniSnip](https://github.com/deminimis/MiniSnip).
+Removed OCR, removed text at the top of the screen when in snipping mode.
 
-One hotkey. Drag a box. The image goes straight to your clipboard. That's it.
+Really the bare bones that it can be 
 
-## What was removed vs. upstream
-
-- OCR (WinRT / `Windows.Media.Ocr`)
-- Save-as-PNG (GDI+ encoder, save dialog)
-- Post-snip action toolbar
-- The large yellow "Select area to Snip" overlay label
-- "Interactive" / "Save" / "OCR" hotkeys and their settings rows
 
 ## What was kept
 

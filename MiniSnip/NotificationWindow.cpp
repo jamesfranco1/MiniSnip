@@ -85,28 +85,7 @@ LRESULT CALLBACK NotificationWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM
     break;
     case WM_APP_SHOW_NOTIFICATION:
     {
-        switch (wParam)
-        {
-        case NOTIFY_COPY_SUCCESS:
-            s_notificationText = L"Copied to Clipboard";
-            break;
-        case NOTIFY_SAVE_SUCCESS:
-            s_notificationText = L"Saved to File";
-            break;
-        case NOTIFY_OCR_SUCCESS:
-            s_notificationText = L"OCR Text Copied";
-            break;
-        case NOTIFY_OCR_SAVE_SUCCESS:
-            s_notificationText = L"OCR Text Saved to File";
-            break;
-        case NOTIFY_OCR_NOTEXT:
-            s_notificationText = L"OCR: No Text Found";
-            break;
-        case NOTIFY_OCR_FAILED:
-        default:
-            s_notificationText = L"OCR Failed";
-            break;
-        }
+        s_notificationText = L"Copied to Clipboard";
 
         HMONITOR hMonitor = MonitorFromWindow(g_hMainWnd, MONITOR_DEFAULTTOPRIMARY);
         MONITORINFO mi = { sizeof(mi) };

@@ -2,7 +2,6 @@
 #include "MainWindow.h"
 #include "Snipping.h"
 #include "NotificationWindow.h"
-#include "ActionToolbar.h"
 
 HINSTANCE g_hInstance = NULL;
 ULONG_PTR g_gdiplusToken = 0;
@@ -13,33 +12,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     _In_ int       nCmdShow)
 {
     UNREFERENCED_PARAMETER(hPrevInstance);
+    UNREFERENCED_PARAMETER(lpCmdLine);
+    UNREFERENCED_PARAMETER(nCmdShow);
 
-    bool startSnipOnLaunch = false;
-    int nArgs = 0;
-    LPWSTR* szArglist = CommandLineToArgvW(lpCmdLine, &nArgs);
-    if (szArglist && nArgs > 0)
+    if (FindWindow(MAIN_WND_CLASS, NULL))
     {
-        if (wcscmp(szArglist[0], L"/copy") == 0 ||
-            wcscmp(szArglist[0], L"/save") == 0 ||
-            wcscmp(szArglist[0], L"/ocr") == 0 ||
-            wcscmp(szArglist[0], L"/ocrsave") == 0)
-        {
-            startSnipOnLaunch = true;
-        }
-    }
-    if (szArglist) LocalFree(szArglist);
-
-    HWND hExistingWnd = FindWindow(MAIN_WND_CLASS, NULL);
-    if (hExistingWnd)
-    {
-        if (startSnipOnLaunch)
-        {
-            PostMessage(hExistingWnd, WM_APP_START_SNIP, 0, 0);
-        }
         return 0;
     }
-
-    winrt::init_apartment(winrt::apartment_type::single_threaded);
 
     GdiplusStartupInput gdiplusStartupInput;
     GdiplusStartup(&g_gdiplusToken, &gdiplusStartupInput, NULL);
@@ -67,7 +46,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     RegisterMainAppWindow();
     RegisterSnippingOverlayClass();
     RegisterNotificationWindowClass();
-    RegisterActionToolbarClass();
 
     g_hMainWnd = CreateMainAppWindow();
     if (!g_hMainWnd)
@@ -77,11 +55,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     CreateNotificationWindow();
 
-    if (startSnipOnLaunch)
-    {
-        PostMessage(g_hMainWnd, WM_APP_START_SNIP, 0, 0);
-    }
-
     MSG msg;
     while (GetMessage(&msg, NULL, 0, 0))
     {
@@ -90,6 +63,5 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
 
     GdiplusShutdown(g_gdiplusToken);
-    winrt::uninit_apartment();
     return (int)msg.wParam;
 }

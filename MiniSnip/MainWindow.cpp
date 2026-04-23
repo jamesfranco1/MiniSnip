@@ -1,7 +1,6 @@
 #include "MainWindow.h"
 #include "Snipping.h"
 #include "NotificationWindow.h"
-#include "ActionToolbar.h"
 #include "Settings.h"
 
 HWND g_hMainWnd = NULL;
@@ -9,14 +8,7 @@ HWND g_hMainWnd = NULL;
 void UpdateHotkeys(HWND hWnd)
 {
     UnregisterHotKey(hWnd, HOTKEY_ID_SNIP_COPY);
-    UnregisterHotKey(hWnd, HOTKEY_ID_SNIP_SAVE);
-    UnregisterHotKey(hWnd, HOTKEY_ID_SNIP_OCR);
-    UnregisterHotKey(hWnd, HOTKEY_ID_SNIP_INTERACTIVE);
-
     if (g_settings.hkCopyKey) RegisterHotKey(hWnd, HOTKEY_ID_SNIP_COPY, g_settings.hkCopyMod, g_settings.hkCopyKey);
-    if (g_settings.hkSaveKey) RegisterHotKey(hWnd, HOTKEY_ID_SNIP_SAVE, g_settings.hkSaveMod, g_settings.hkSaveKey);
-    if (g_settings.hkOcrKey)  RegisterHotKey(hWnd, HOTKEY_ID_SNIP_OCR, g_settings.hkOcrMod, g_settings.hkOcrKey);
-    if (g_settings.hkInteractiveKey) RegisterHotKey(hWnd, HOTKEY_ID_SNIP_INTERACTIVE, g_settings.hkInteractiveMod, g_settings.hkInteractiveKey);
 }
 
 bool RegisterMainAppWindow()
@@ -33,7 +25,7 @@ HWND CreateMainAppWindow()
     return CreateWindowEx(
         0,
         MAIN_WND_CLASS,
-        L"Mini Snip & OCR",
+        L"MiniSnip",
         WS_OVERLAPPEDWINDOW,
         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
         HWND_MESSAGE,
@@ -53,29 +45,10 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         UpdateHotkeys(hWnd);
         break;
     case WM_HOTKEY:
-        switch (LOWORD(wParam))
-        {
-        case HOTKEY_ID_SNIP_COPY:
-            StartSnipping(SnippingMode::CopyImage);
-            break;
-        case HOTKEY_ID_SNIP_SAVE:
-            StartSnipping(SnippingMode::SaveImage);
-            break;
-        case HOTKEY_ID_SNIP_OCR:
-            StartSnipping(SnippingMode::OcrText);
-            break;
-        case HOTKEY_ID_SNIP_INTERACTIVE:
-            StartSnipping(SnippingMode::Interactive);
-            break;
-        }
+        if (LOWORD(wParam) == HOTKEY_ID_SNIP_COPY) StartSnipping();
         break;
     case WM_APP_TRAY_MSG:
-        switch (LOWORD(lParam))
-        {
-        case WM_RBUTTONUP:
-            ShowContextMenu(hWnd);
-            break;
-        }
+        if (LOWORD(lParam) == WM_RBUTTONUP) ShowContextMenu(hWnd);
         break;
     case WM_COMMAND:
     {
@@ -83,7 +56,7 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         switch (wmId)
         {
         case IDM_START_SNIP:
-            StartSnipping(SnippingMode::Interactive);
+            StartSnipping();
             break;
         case IDM_SETTINGS:
             ShowSettingsDialog(hWnd);
@@ -96,9 +69,6 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
         }
     }
     break;
-    case WM_APP_START_SNIP:
-        StartSnipping(SnippingMode::Interactive);
-        break;
     case WM_APP_UPDATE_HOTKEYS:
         UpdateHotkeys(hWnd);
         break;
@@ -108,15 +78,8 @@ LRESULT CALLBACK MainWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
             PostMessage(g_hNotificationWnd, WM_APP_SHOW_NOTIFICATION, wParam, lParam);
         }
         break;
-    case WM_APP_SHOW_ACTION_TOOLBAR:
-        ShowActionToolbar(*(RECT*)lParam);
-        delete (RECT*)lParam;
-        break;
     case WM_DESTROY:
         UnregisterHotKey(hWnd, HOTKEY_ID_SNIP_COPY);
-        UnregisterHotKey(hWnd, HOTKEY_ID_SNIP_SAVE);
-        UnregisterHotKey(hWnd, HOTKEY_ID_SNIP_OCR);
-        UnregisterHotKey(hWnd, HOTKEY_ID_SNIP_INTERACTIVE);
         RemoveTrayIcon(hWnd);
         PostQuitMessage(0);
         break;
@@ -135,7 +98,7 @@ void SetupTrayIcon(HWND hWnd)
     nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
     nid.uCallbackMessage = WM_APP_TRAY_MSG;
     nid.hIcon = LoadIcon(g_hInstance, MAKEINTRESOURCE(IDI_MAINICON));
-    wcscpy_s(nid.szTip, L"Mini Snip & OCR");
+    wcscpy_s(nid.szTip, L"MiniSnip");
     Shell_NotifyIcon(NIM_ADD, &nid);
 
     nid.uVersion = NOTIFYICON_VERSION_4;

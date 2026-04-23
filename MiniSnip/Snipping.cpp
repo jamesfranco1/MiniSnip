@@ -1,14 +1,11 @@
 #include "Snipping.h"
 #include "Actions.h"
-#include "Utilities.h"
 
 HBITMAP g_hScreenshot = NULL;
-HBITMAP g_hCroppedBitmap = NULL;
 POINT g_startPoint = { 0, 0 };
 POINT g_endPoint = { 0, 0 };
 bool g_isSelecting = false;
 std::vector<HWND> g_hOverlayWnds;
-SnippingMode g_currentMode = SnippingMode::Interactive;
 
 BOOL CALLBACK MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData);
 
@@ -39,12 +36,10 @@ void CloseAllOverlays()
     g_isSelecting = false;
 }
 
-void StartSnipping(SnippingMode mode)
+void StartSnipping()
 {
     if (!g_hOverlayWnds.empty()) return;
-    if (g_hActionToolbarWnd) DestroyWindow(g_hActionToolbarWnd);
 
-    g_currentMode = mode;
     g_hScreenshot = TakeFullscreenScreenshot();
     if (!g_hScreenshot) return;
 
@@ -106,44 +101,6 @@ LRESULT CALLBACK OverlayWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
         SelectObject(hdcMem, hOldBitmap);
         DeleteDC(hdcMem);
-
-        POINT ptCursor;
-        GetCursorPos(&ptCursor);
-        HMONITOR hMonitorCursor = MonitorFromPoint(ptCursor, MONITOR_DEFAULTTONEAREST);
-        HMONITOR hMonitorWnd = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
-
-        if (hMonitorCursor == hMonitorWnd)
-        {
-            const WCHAR* modeText = L"Select area";
-            if (g_currentMode == SnippingMode::CopyImage) modeText = L"Select area to Copy Image";
-            else if (g_currentMode == SnippingMode::SaveImage) modeText = L"Select area to Save Image";
-            else if (g_currentMode == SnippingMode::OcrText) modeText = L"Select area to OCR";
-            else modeText = L"Select area to Snip";
-
-            UINT dpi = GetDpiForWindow(hWnd);
-            int fontSize = MulDiv(24, dpi, 96);
-            HFONT hFont = CreateFont(fontSize, 0, 0, 0, FW_BOLD, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, DEFAULT_PITCH | FF_SWISS, L"Arial");
-            HGDIOBJ hOldFont = SelectObject(hdc, hFont);
-
-            SetBkMode(hdc, TRANSPARENT);
-
-            SIZE textSize;
-            GetTextExtentPoint32(hdc, modeText, (int)wcslen(modeText), &textSize);
-
-            RECT rcClient;
-            GetClientRect(hWnd, &rcClient);
-            int x = (rcClient.right - textSize.cx) / 2;
-            int y = MulDiv(20, dpi, 96);
-
-            SetTextColor(hdc, RGB(0, 0, 0));
-            TextOut(hdc, x + 1, y + 1, modeText, (int)wcslen(modeText));
-
-            SetTextColor(hdc, RGB(255, 255, 0));
-            TextOut(hdc, x, y, modeText, (int)wcslen(modeText));
-
-            SelectObject(hdc, hOldFont);
-            DeleteObject(hFont);
-        }
 
         if (g_isSelecting)
         {
@@ -210,48 +167,19 @@ LRESULT CALLBACK OverlayWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
         if (hCroppedBitmap)
         {
-            if (g_currentMode == SnippingMode::Interactive)
-            {
-                g_hCroppedBitmap = hCroppedBitmap;
-                RECT* pSnipRect = new RECT(selectionRect);
-                PostMessage(g_hMainWnd, WM_APP_SHOW_ACTION_TOOLBAR, 0, (LPARAM)pSnipRect);
-            }
-            else
-            {
-                if (g_currentMode == SnippingMode::CopyImage)
-                {
-                    CopyBitmapToClipboard(hCroppedBitmap);
-                    PostMessage(g_hMainWnd, WM_APP_SHOW_NOTIFICATION, NOTIFY_COPY_SUCCESS, 0);
-                    DeleteObject(hCroppedBitmap);
-                }
-                else if (g_currentMode == SnippingMode::SaveImage)
-                {
-                    if (SaveBitmapToFile(hCroppedBitmap))
-                    {
-                        PostMessage(g_hMainWnd, WM_APP_SHOW_NOTIFICATION, NOTIFY_SAVE_SUCCESS, 0);
-                    }
-                    DeleteObject(hCroppedBitmap);
-                }
-                else if (g_currentMode == SnippingMode::OcrText)
-                {
-                    PerformOcr(hCroppedBitmap, SnippingMode::OcrText);
-                }
-            }
+            CopyBitmapToClipboard(hCroppedBitmap);
+            PostMessage(g_hMainWnd, WM_APP_SHOW_NOTIFICATION, NOTIFY_COPY_SUCCESS, 0);
+            DeleteObject(hCroppedBitmap);
         }
     }
     break;
 
     case WM_KEYDOWN:
-        if (wParam == VK_ESCAPE)
-        {
-            CloseAllOverlays();
-            if (g_hActionToolbarWnd) DestroyWindow(g_hActionToolbarWnd);
-        }
+        if (wParam == VK_ESCAPE) CloseAllOverlays();
         break;
 
     case WM_RBUTTONDOWN:
         CloseAllOverlays();
-        if (g_hActionToolbarWnd) DestroyWindow(g_hActionToolbarWnd);
         break;
 
     default:
